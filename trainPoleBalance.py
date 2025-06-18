@@ -5,16 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 from collections import deque
-
-class DQN(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(DQN, self).__init__()
-        self.input_layer = nn.Linear(input_dim, 128)
-        self.act1 = nn.ReLU()
-        self.output_layer = nn.Linear(128, output_dim)
-
-    def forward(self, x):
-        return self.output_layer(self.act1(self.input_layer(x)))
+from dqn import DQN
 
 # Epsilon-greedy policy
 #  A random action is chosen epsilon % of the time
@@ -27,21 +18,6 @@ def get_action(state, epsilon, q_network, action_space):
     with torch.no_grad():
         q_values = q_network(state)
     return torch.argmax(q_values).item()
-
-# Test Agent
-def test_agent(env, model, episodes=5):
-    for _ in range(episodes):
-        state, _ = env.reset()
-        done = False
-        total_reward = 0
-
-        while not done:
-            action = get_action(state, epsilon=0, q_network=model, action_space = env.action_space)
-            state, reward, terminated, truncated, _ = env.step(action)
-            total_reward += reward
-            done = terminated or truncated
-
-        print(f"Test Episode Reward: {total_reward}")
 
 # Set Random Seeds
 SEED = 24
@@ -63,7 +39,7 @@ optimizer = optim.Adam(q_network.parameters(), lr=1e-3)
 loss_fn = nn.MSELoss()
 
 # Hyperparameters
-num_episodes = 2000
+num_episodes = 800
 batch_size = 64
 gamma = 0.99
 epsilon = 1.0
@@ -124,7 +100,10 @@ for episode in range(num_episodes):
 
 env.close()
 
-# Testing the Trained Agent
-test_env = gym.make("CartPole-v1", render_mode="human")
-test_agent(test_env, q_network)
-test_env.close()
+model_save_path = "dqn_cartpole.pth"
+try:
+    if input("Enter 0 to discard this training.\nEnter 1 to save this training.\n"):
+        torch.save(q_network.state_dict(), model_save_path)
+        print(f"Training saved into {model_save_path}")
+except Exception as e:
+    print("Please enter 0 or 1 next time. Thank you.")
