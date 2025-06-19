@@ -19,6 +19,10 @@ def get_action(state, epsilon, q_network, action_space):
         q_values = q_network(state)
     return torch.argmax(q_values).item()
 
+def soft_update(target, source, tau):
+    for target_param, param in zip(target.parameters(), source.parameters()):
+        target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
+
 # Set Random Seeds
 SEED = 24
 random.seed(SEED)
@@ -45,7 +49,7 @@ gamma = 0.99
 epsilon = 1.0
 epsilon_decay = 0.995
 epsilon_min = 0.01
-target_update_freq = 10
+target_update_freq = 5
 
 # Replay Buffer
 memory = deque(maxlen=10000)
@@ -53,7 +57,7 @@ memory = deque(maxlen=10000)
 # Early Stopping
 reward_history = []
 REWARD_THRESHOLD = 475
-PATIENCE = 100
+PATIENCE = 50
 
 for episode in range(num_episodes):
     state, _ = env.reset(seed=SEED)
@@ -68,15 +72,6 @@ for episode in range(num_episodes):
         memory.append((state, action, reward, next_state, done))
         state = next_state
         total_reward += reward
-
-        # Early Stopping
-        reward_history.append(total_reward)
-        if len(reward_history) >= PATIENCE:
-            average_reward = np.mean(reward_history[-PATIENCE:])
-            if average_reward >= REWARD_THRESHOLD:
-                print(f"Early Stopping Triggered: Average Reward is {average_reward}")
-                break
-
 
         # Train the Network
         if len(memory) >= batch_size:
@@ -94,7 +89,8 @@ for episode in range(num_episodes):
 
             # Target Q Values
             with torch.no_grad():
-                max_next_q = target_network(next_states).max(1)[0]
+                next_actions = q_network(next_states).argmax(1, keepdim=True)
+                max_next_q = target_network(next_states).gather(1, next_actions).squeeze()
                 targets = rewards + gamma * max_next_q * (1-dones)
 
             loss = loss_fn(q_values, targets)
@@ -103,12 +99,18 @@ for episode in range(num_episodes):
             loss.backward()
             optimizer.step()
 
+        soft_update(target_network, q_network, tau=0.005)
+
+    # Early Stopping
+    reward_history.append(total_reward)
+    if len(reward_history) >= PATIENCE and episode >= 200:
+        average_reward = np.mean(reward_history[-PATIENCE:])
+        if average_reward >= REWARD_THRESHOLD:
+            print(f"Early Stopping Triggered: Average Reward is {average_reward}")
+            break
+
     # Decay Epsilon
     epsilon = max(epsilon_min, epsilon * epsilon_decay)
-
-    # Update target netwrok
-    if episode % target_update_freq == 0:
-        target_network.load_state_dict(q_network.state_dict())
 
     print(f"Episode {episode}: {total_reward=} | {epsilon=:.3f}")
 
@@ -116,7 +118,7 @@ env.close()
 
 model_save_path = "dqn_cartpole.pth"
 try:
-    if input("Enter 0 to discard this training.\nEnter 1 to save this training.\n") == 1:
+    if int(input("Enter 0 to discard this training.\nEnter 1 to save this training.\n")) == 1:
         torch.save(q_network.state_dict(), model_save_path)
         print(f"Training saved into {model_save_path}")
 except Exception as e:
