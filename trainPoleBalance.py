@@ -39,7 +39,7 @@ optimizer = optim.Adam(q_network.parameters(), lr=1e-3)
 loss_fn = nn.MSELoss()
 
 # Hyperparameters
-num_episodes = 800
+num_episodes = 2000
 batch_size = 64
 gamma = 0.99
 epsilon = 1.0
@@ -49,6 +49,11 @@ target_update_freq = 10
 
 # Replay Buffer
 memory = deque(maxlen=10000)
+
+# Early Stopping
+reward_history = []
+REWARD_THRESHOLD = 475
+PATIENCE = 100
 
 for episode in range(num_episodes):
     state, _ = env.reset(seed=SEED)
@@ -63,6 +68,15 @@ for episode in range(num_episodes):
         memory.append((state, action, reward, next_state, done))
         state = next_state
         total_reward += reward
+
+        # Early Stopping
+        reward_history.append(total_reward)
+        if len(reward_history) >= PATIENCE:
+            average_reward = np.mean(reward_history[-PATIENCE:])
+            if average_reward >= REWARD_THRESHOLD:
+                print(f"Early Stopping Triggered: Average Reward is {average_reward}")
+                break
+
 
         # Train the Network
         if len(memory) >= batch_size:
@@ -102,7 +116,7 @@ env.close()
 
 model_save_path = "dqn_cartpole.pth"
 try:
-    if input("Enter 0 to discard this training.\nEnter 1 to save this training.\n"):
+    if input("Enter 0 to discard this training.\nEnter 1 to save this training.\n") == 1:
         torch.save(q_network.state_dict(), model_save_path)
         print(f"Training saved into {model_save_path}")
 except Exception as e:
