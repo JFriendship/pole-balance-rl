@@ -35,7 +35,7 @@ env = gym.make("CartPole-v1", render_mode="human")
 input_dim = env.observation_space.shape[0]
 output_dim = env.action_space.n
 
-# Re-create Model
+# Recreate Model
 model_save_path = "dqn_cartpole.pth"
 model = DQN(input_dim, output_dim)
 model.load_state_dict(torch.load(model_save_path))
