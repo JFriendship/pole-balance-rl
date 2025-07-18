@@ -18,10 +18,11 @@ This project was created using python 3.11, so make sure the venv is using the c
 **dqn_cartpole.pth** contains the saved model parameters. Populates when saving a trained agent and is loaded when testing a saved agent.
 
 ## Screenshots
-**Training Example**  
-![Alt text](pole-balance-rl\screenshots\training-example.jpg?raw=true "Training-Example")
+**Training Example (Command Line)**  
+![Training-Example](screenshots\training-example.jpg?raw=true "Training-Example")
 
-**Test Example**  
-![Alt text](pole-balance-rl\screenshots\test-example.jpg?raw=true "Test-Example")
+**Test Example (Command Line)**  
+![Test-Example](screenshots\test-example.jpg?raw=true "Test-Example")
 
-![Alt text](pole-balance-rl\screenshots\test-example-pygame.jpg?raw=true "Test-Example-pygame")
+**Test Example (pygame)**  
+![Test-Example-pygame](screenshots\test-example-pygame.jpg?raw=true "Test-Example-pygame")
